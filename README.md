@@ -1,4 +1,11 @@
-# 🎲 BOVI 보드게임 채팅봇 - 완벽한 원클릭 배포
+# 🌐 보드게임 챗봇 프론트엔드
+
+[![Django](https://img.shields.io/badge/Django-4.2+-green.svg)](https://www.djangoproject.com/)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
+[![Nginx](https://img.shields.io/badge/Nginx-1.18+-orange.svg)](https://nginx.org/)
+
+> Django 기반 보드게임 챗봇 웹 인터페이스
 
 ## ⚡ AWS EC2 배포 (완전 자동화)
 
