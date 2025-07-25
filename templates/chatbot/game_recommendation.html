@@ -1,0 +1,185 @@
+{% extends 'chatbot/base.html' %}
+
+{% block title %}게임 추천 - 보드게임 채팅봇{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>🎮 게임 추천 챗봇</h1>
+        <p>어떤 보드게임을 찾고 계신가요? 상황과 취향을 알려주세요!</p>
+        <button onclick="closeSession()" class="close-session-btn">대화 종료</button>
+        <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.7;">
+            세션 ID: <span id="sessionStatus">없음</span>
+        </div>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+        <div class="message bot">
+            <div class="message-bubble">
+                안녕하세요! 🎲 게임 추천 챗봇입니다.<br>
+                다음과 같은 정보를 알려주시면 더 정확한 추천을 해드릴 수 있어요:<br><br>
+                • 게임 인원수<br>
+                • 게임 시간<br>
+                • 선호하는 장르<br>
+                • 난이도 (초급/중급/고급)<br>
+                • 특별한 요구사항<br><br>
+                어떤 게임을 찾고 계신가요?
+            </div>
+        </div>
+    </div>
+    
+    <div class="chat-input-container">
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." maxlength="500">
+            <button onclick="sendMessage()">전송</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let sessionId = "";
+
+// 페이지 로드 시 세션 ID 미리 받아오기
+window.addEventListener('DOMContentLoaded', function() {
+    initializeSession();
+});
+
+// 페이지 이동 전에 세션 종료
+window.addEventListener('beforeunload', function() {
+    closeSession();
+});
+
+// 페이지 벗어날 때 세션 종료
+window.addEventListener('pagehide', function() {
+    closeSession();
+});
+
+function initializeSession() {
+    console.log('🚀 세션 초기화 시작...');
+    
+    // 더미 요청으로 세션 ID 미리 받아오기
+    fetch('{% url "chatbot:chat_api" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            message: '__INIT_SESSION__',  // 더미 메시지
+            chat_type: 'game_recommendation',
+            session_id: ""  // 빈 값으로 전송
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.session_id) {
+            sessionId = data.session_id;
+            console.log('✅ 세션 초기화 완료:', sessionId);
+            
+            // 화면에 세션 ID 표시
+            document.getElementById('sessionStatus').textContent = sessionId.substring(0, 8) + '...';
+        } else {
+            console.error('❌ 세션 초기화 실패:', data);
+        }
+    })
+    .catch(error => {
+        console.error('❌ 세션 초기화 오류:', error);
+    });
+}
+
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    // 세션이 아직 초기화되지 않았으면 잠시 대기
+    if (!sessionId) {
+        addMessage('세션을 초기화하는 중입니다. 잠시 후 다시 시도해주세요.', 'bot');
+        return;
+    }
+    
+    // 사용자 메시지 표시
+    addMessage(message, 'user');
+    input.value = '';
+    
+    // 봇 응답 요청
+    fetch('{% url "chatbot:chat_api" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            message: message,
+            chat_type: 'game_recommendation',
+            session_id: sessionId  // 미리 받은 세션 ID 사용
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('서버 응답 데이터:', data);  // 디버깅용
+        
+        if (data.status === 'success') {
+            addMessage(data.response, 'bot');
+            
+            // 세션 ID 업데이트 (혹시 모를 변경사항 반영)
+            if (data.session_id && data.session_id.trim() !== '') {
+                if (sessionId !== data.session_id) {
+                    console.log('🔄 세션 ID 업데이트:', data.session_id);
+                    sessionId = data.session_id;
+                    document.getElementById('sessionStatus').textContent = sessionId.substring(0, 8) + '...';
+                }
+            }
+        } else {
+            addMessage('죄송합니다. 오류가 발생했습니다.', 'bot');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        addMessage('죄송합니다. 네트워크 오류가 발생했습니다.', 'bot');
+    });
+}
+
+function closeSession() {
+    if (sessionId) {
+        // 세션 종료 요청 (동기적으로)
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '{% url "chatbot:close_session" %}', false); // 동기 요청
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({
+            session_id: sessionId
+        }));
+        
+        console.log('세션 종료:', sessionId);
+        sessionId = "";
+        
+        // 화면에서 세션 ID 삭제
+        document.getElementById('sessionStatus').textContent = '없음';
+    }
+}
+
+function addMessage(message, sender) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    
+    const bubbleDiv = document.createElement('div');
+    bubbleDiv.className = 'message-bubble';
+    bubbleDiv.textContent = message;
+    
+    messageDiv.appendChild(bubbleDiv);
+    chatMessages.appendChild(messageDiv);
+    
+    // 스크롤을 맨 아래로
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 엔터 키로 메시지 전송
+document.getElementById('messageInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+</script>
+{% endblock %}

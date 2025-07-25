@@ -1,0 +1,25 @@
+[Unit]
+Description=BOVI Boardgame Chatbot Gunicorn daemon
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/boardgame_chatbot
+Environment="PATH=/home/ubuntu/boardgame_chatbot/venv/bin"
+EnvironmentFile=/home/ubuntu/boardgame_chatbot/.env
+ExecStart=/home/ubuntu/boardgame_chatbot/venv/bin/gunicorn \
+    --access-logfile - \
+    --error-logfile - \
+    --workers 3 \
+    --bind unix:/run/gunicorn/boardgame_chatbot.sock \
+    --timeout 120 \
+    boardgame_chatbot.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

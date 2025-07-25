@@ -1,0 +1,210 @@
+{% extends 'chatbot/base.html' %}
+
+{% block title %}BOVI - 보드게임 채팅봇{% endblock %}
+
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .hero-logo {
+        width: 200px;
+        height: auto;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .rankings-section {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 2rem;
+        border-radius: 15px;
+        margin: 2rem 0;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .rankings-title {
+        text-align: center;
+        color: #4f46e5;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+    
+    .rankings-list {
+        display: grid;
+        gap: 0.5rem;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .ranking-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .ranking-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .ranking-number {
+        background: linear-gradient(45deg,rgb(172, 248, 219), #7c3aed);
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .ranking-number.top-3 {
+        background: linear-gradient(45deg, #f59e0b, #d97706);
+    }
+    
+    .ranking-game {
+        flex: 1;
+        font-weight: 500;
+        color: #334155;
+    }
+    
+    .ranking-count {
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+    
+    .ranking-badge {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        margin-left: 0.5rem;
+    }
+    
+    .no-rankings {
+        text-align: center;
+        color: #64748b;
+        font-style: italic;
+        padding: 2rem;
+    }
+    
+    .game-type-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .game-type-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid #4f46e5;
+        background: white;
+        color: #4f46e5;
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+    
+    .game-type-btn:hover {
+        background: #4f46e5;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .bang-btn {
+        border-color: #dc2626;
+        color: #dc2626;
+    }
+    
+    .bang-btn:hover {
+        background: #dc2626;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-hero">
+    <img src="{% static 'chatbot/logo.png' %}" alt="BOVI Logo" class="hero-logo">
+    <h2>다양한 보드게임 정보와 룰을 AI 챗봇과 함께 알아보세요!</h2>
+</div>
+
+<!-- 게임 순위 섹션 -->
+{% if game_rankings %}
+<div class="rankings-section">
+    <h2 class="rankings-title">🏆 인기 게임 순위 (질문 수 기준)</h2>
+    <div class="rankings-list">
+        {% for ranking in game_rankings %}
+        <div class="ranking-item" onclick="handleGameClick('{{ ranking.game_name }}')">
+            <div class="ranking-number {% if forloop.counter <= 3 %}top-3{% endif %}">
+                {{ forloop.counter }}
+            </div>
+            <div class="ranking-game">{{ ranking.game_name }}</div>
+            <div class="ranking-count">
+                총 {{ ranking.total_count }}개 질문
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="rankings-section">
+    <h2 class="rankings-title">🏆 게임 순위</h2>
+    <div class="no-rankings">
+        아직 질문 데이터가 없습니다. 게임에 대해 질문을 해보세요!
+    </div>
+</div>
+{% endif %}
+
+<div class="feature-cards">
+    <div class="feature-card">
+        <h3>🎮 게임 추천</h3>
+        <p>취향과 상황에 맞는 보드게임을 추천받으세요. 인원수, 난이도, 장르 등을 고려하여 최적의 게임을 찾아드립니다.</p>
+        <a href="{% url 'chatbot:game_recommendation' %}">게임 추천받기</a>
+    </div>
+    
+    <div class="feature-card">
+        <h3>🤖룰 설명</h3>
+        <p>보드게임의 복잡한 룰을 쉽게 이해할 수 있도록 AI를 이용하여 친절하게 설명해드립니다. QR코드로 모바일에서도 이용 가능!</p>
+        <a href="{% url 'chatbot:gpt_rules' %}">룰 설명받기</a>
+    </div>
+    
+    <div class="feature-card">
+        <h3>⚙️파인튜닝 룰 설명</h3>
+        <p>특별히 파인튜닝된 AI 모델이 더욱 정확하고 자세한 보드게임 룰을 설명해드립니다. 모바일 지원!</p>
+        <a href="{% url 'chatbot:finetuning_rules' %}">전문 룰 설명받기</a>
+    </div>
+    
+    <div class="feature-card">
+        <h3>📊QA 데이터 통계</h3>
+        <p>실시간으로 쌓이는 질문답변 데이터를 확인하고 관리하세요. 사용자가 질문할 때마다 자동으로 저장됩니다!</p>
+        <a href="{% url 'chatbot:qa_stats' %}">통계 확인하기</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleGameClick(gameName) {
+    // 뱅인지 확인
+    if (gameName.toLowerCase().includes('뱅') || gameName.toLowerCase().includes('bang')) {
+        // 뱅이면 파인튜닝 룰 설명 페이지로
+        window.location.href = "{% url 'chatbot:finetuning_rules' %}?game=" + encodeURIComponent(gameName);
+    } else {
+        // 다른 게임이면 GPT 룰 설명 페이지로
+        window.location.href = "{% url 'chatbot:gpt_rules' %}?game=" + encodeURIComponent(gameName);
+    }
+}
+</script>
+{% endblock %}

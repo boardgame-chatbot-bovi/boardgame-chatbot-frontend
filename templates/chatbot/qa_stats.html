@@ -1,0 +1,299 @@
+{% extends 'chatbot/base.html' %}
+
+{% block title %}QA 데이터 통계 - BOVI{% endblock %}
+
+{% block content %}
+<div class="stats-container">
+    <div class="stats-header">
+        <h1>📊 QA 데이터베이스 통계</h1>
+        <p>실시간으로 쌓이는 질문답변 데이터를 확인하세요!</p>
+    </div>
+    
+    <div class="stats-overview">
+        <div class="stat-card">
+            <h3>🤖룰 QA</h3>
+            <div class="stat-number">{{ gpt_count }}</div>
+            <p>친근한 룰 설명</p>
+        </div>
+        
+        <div class="stat-card">
+            <h3>⚙️ 파인튜닝 룰 QA</h3>
+            <div class="stat-number">{{ ft_count }}</div>
+            <p>전문적 룰 설명</p>
+        </div>
+        
+        <div class="stat-card total">
+            <h3>📚 전체 QA</h3>
+            <div class="stat-number">{{ total_count }}</div>
+            <p>총 질문답변 쌍</p>
+        </div>
+    </div>
+    
+    <div class="stats-by-game">
+        <h2>🎲 게임별 QA 현황</h2>
+        <div class="game-stats-grid">
+            {% for game, gpt_count in gpt_by_game.items %}
+            <div class="game-stat-card">
+                <h4>{{ game }}</h4>
+                <div class="game-stat-row">
+                    <span class="gpt-stat">GPT: {{ gpt_count }}개</span>
+                    <span class="ft-stat">파인튜닝: {% for ft_game, ft_count in ft_by_game.items %}{% if ft_game == game %}{{ ft_count }}{% endif %}{% endfor %}개</span>
+                </div>
+                <div class="game-total">총 {% for ft_game, ft_count in ft_by_game.items %}{% if ft_game == game %}{{ gpt_count|add:ft_count }}{% endif %}{% endfor %}개</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="recent-qa">
+        <div class="recent-section">
+            <h2>🆕 최근 룰 QA</h2>
+            <div class="qa-list">
+                {% for qa in recent_gpt %}
+                <div class="qa-item">
+                    <div class="qa-header">
+                        <span class="game-name">{{ qa.game_name }}</span>
+                        <span class="qa-time">{{ qa.created_at|date:"m/d H:i" }}</span>
+                    </div>
+                    <div class="qa-question">Q: {{ qa.question|truncatechars:80 }}</div>
+                    <div class="qa-answer">A: {{ qa.answer|truncatechars:100 }}</div>
+                </div>
+                {% empty %}
+                <p class="no-data">아직 룰 QA가 없습니다.</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="recent-section">
+            <h2>🆕 최근 파인튜닝 룰 QA</h2>
+            <div class="qa-list">
+                {% for qa in recent_ft %}
+                <div class="qa-item">
+                    <div class="qa-header">
+                        <span class="game-name">{{ qa.game_name }}</span>
+                        <span class="qa-time">{{ qa.created_at|date:"m/d H:i" }}</span>
+                    </div>
+                    <div class="qa-question">Q: {{ qa.question|truncatechars:80 }}</div>
+                    <div class="qa-answer">A: {{ qa.answer|truncatechars:100 }}</div>
+                </div>
+                {% empty %}
+                <p class="no-data">아직 파인튜닝 룰 QA가 없습니다.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-link">
+        <a href="/admin/" class="admin-btn">🔧 관리자 패널에서 상세 관리</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.stats-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.stats-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    color: white;
+}
+
+.stats-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.stats-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card.total {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #4f46e5;
+    margin: 1rem 0;
+}
+
+.stat-card.total .stat-number {
+    color: white;
+}
+
+.stats-by-game {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 3rem;
+}
+
+.game-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.game-stat-card {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 10px;
+    border: 2px solid #e2e8f0;
+}
+
+.game-stat-card h4 {
+    color: #4f46e5;
+    margin-bottom: 0.5rem;
+}
+
+.game-stat-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.gpt-stat {
+    color: #4f46e5;
+}
+
+.ft-stat {
+    color: #7c3aed;
+}
+
+.game-total {
+    font-weight: bold;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.recent-qa {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.recent-section {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 15px;
+}
+
+.recent-section h2 {
+    color: #4f46e5;
+    margin-bottom: 1rem;
+}
+
+.qa-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.qa-item {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border-left: 4px solid #4f46e5;
+}
+
+.qa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.game-name {
+    background: #4f46e5;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.qa-time {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.qa-question {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.qa-answer {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.no-data {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 2rem;
+}
+
+.admin-link {
+    text-align: center;
+}
+
+.admin-btn {
+    display: inline-block;
+    background: linear-gradient(45deg, #4f46e5, #7c3aed);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.admin-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+@media (max-width: 768px) {
+    .recent-qa {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .game-stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+</style>
+{% endblock %}

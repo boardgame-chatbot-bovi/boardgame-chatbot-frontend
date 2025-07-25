@@ -1,0 +1,530 @@
+{% extends 'chatbot/base.html' %}
+
+{% block title %}파인튜닝 룰 설명 - 보드게임 채팅봇{% endblock %}
+
+{% block content %}
+<div class="rule-container">
+    <div class="game-selector">
+        <h2>⚙️ 게임 선택 (전문 AI)</h2>
+        
+        <!-- 검색창 추가 -->
+        <div class="game-search-container">
+            <input type="text" id="gameSearch" class="game-search" placeholder="게임 이름을 검색하세요... (예: 뱅, 카탄, 스플렌더)">
+            <div class="search-icon">🔍</div>
+        </div>
+        
+        <!-- 검색 결과 표시 -->
+        <div id="searchResults" class="search-results" style="display: none;"></div>
+        
+        <!-- 기존 드롭다운 -->
+        <div class="dropdown-container">
+            <select id="gameSelect" class="game-dropdown">
+                <option value="">또는 스크롤해서 게임을 선택해주세요</option>
+                {% for game in available_games %}
+                    <option value="{{ game }}">{{ game }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    
+    <div class="rule-summary" id="ruleSummary" style="display: none;">
+        <h3>🎯 전문 AI의 정확한 룰 설명</h3>
+        <div id="summaryContent" class="summary-content"></div>
+    </div>
+    
+    <div class="chat-container" id="chatContainer" style="display: none;">
+        <div class="chat-header">
+            <h1>⚙️ 파인튜닝 룰 설명 챗봇</h1>
+            <p id="selectedGameName"></p>
+            <small style="opacity: 0.8;">전문적으로 학습된 AI가 더욱 정확한 룰 설명을 제공합니다</small>
+            <button onclick="closeSession()" class="close-session-btn" style="font-size: 0.8rem; padding: 0.3rem 0.8rem; margin-top: 0.5rem;">대화 종료</button>
+            <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.7;">
+                세션 ID: <span id="sessionStatus">없음</span>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-bubble">
+                    게임을 선택하신 후 복잡한 룰이나 예외 상황에 대해 질문해주세요! ⚙️<br>
+                    전문적으로 학습된 AI가 정확하고 상세한 답변을 제공합니다.
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="전문적인 룰 질문을 해주세요..." maxlength="500">
+                <button onclick="sendMessage()">전송</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="qr-container">
+    <h3 style="color: white; margin-bottom: 1rem;">📱 모바일에서 채팅하기</h3>
+    <p style="color: white; margin-bottom: 1rem;">QR코드를 스캔하여 핸드폰에서 비밀스럽게 질문하세요!</p>
+    <div class="qr-code">
+        <img src="{% url 'chatbot:generate_qr' 'finetuning_rules' %}" alt="파인튜닝 룰 설명 QR 코드" style="width: 200px; height: 200px;">
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.rule-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.game-selector {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid #7c3aed;
+}
+
+.game-selector h2 {
+    color: #7c3aed;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* 검색창 스타일 */
+.game-search-container {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.game-search {
+    width: 100%;
+    padding: 1rem 3rem 1rem 1rem;
+    font-size: 1.1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.game-search:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    pointer-events: none;
+}
+
+/* 검색 결과 스타일 */
+.search-results {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.search-result-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s ease;
+}
+
+.search-result-item:hover {
+    background-color: #f8fafc;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item.selected {
+    background-color: #7c3aed;
+    color: white;
+}
+
+.no-results {
+    padding: 1rem;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+/* 드롭다운 스타일 */
+.dropdown-container {
+    margin-top: 1rem;
+}
+
+.game-dropdown {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.game-dropdown:focus {
+    border-color: #7c3aed;
+}
+
+.rule-summary {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid #7c3aed;
+}
+
+.rule-summary h3 {
+    color: #7c3aed;
+    margin-bottom: 1rem;
+}
+
+.summary-content {
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+}
+
+.chat-container {
+    margin-bottom: 2rem;
+}
+
+.chat-header {
+    background: linear-gradient(45deg, #7c3aed, #a855f7);
+}
+
+.loading {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+/* 파인튜닝 버전만의 특별한 스타일 */
+.message.bot .message-bubble {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    border-left: 4px solid #7c3aed;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let sessionId = "";
+let selectedGame = '';
+let allGames = [{% for game in available_games %}'{{ game|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+// 페이지 로드 시 세션 ID 미리 받아오기
+window.addEventListener('DOMContentLoaded', function() {
+    initializeSession();
+});
+
+// 페이지 이동 전에 세션 종료
+window.addEventListener('beforeunload', function() {
+    closeSession();
+});
+
+// 페이지 벗어날 때 세션 종료
+window.addEventListener('pagehide', function() {
+    closeSession();
+});
+
+function initializeSession() {
+    console.log('🚀 파인튜닝 룰 설명 세션 초기화 시작...');
+    
+    // 더미 요청으로 세션 ID 미리 받아오기
+    fetch('{% url "chatbot:chat_api" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            message: '__INIT_SESSION__',  // 더미 메시지
+            chat_type: 'finetuning_rules',
+            session_id: ""  // 빈 값으로 전송
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.session_id) {
+            sessionId = data.session_id;
+            console.log('✅ 파인튜닝 룰 설명 세션 초기화 완료:', sessionId);
+            
+            // 화면에 세션 ID 표시
+            const sessionStatusElement = document.getElementById('sessionStatus');
+            if (sessionStatusElement) {
+                sessionStatusElement.textContent = sessionId.substring(0, 8) + '...';
+            }
+        } else {
+            console.error('❌ 파인튜닝 룰 설명 세션 초기화 실패:', data);
+        }
+    })
+    .catch(error => {
+        console.error('❌ 파인튜닝 룰 설명 세션 초기화 오류:', error);
+    });
+}
+
+function closeSession() {
+    if (sessionId) {
+        // 세션 종료 요청 (동기적으로)
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '{% url "chatbot:close_session" %}', false); // 동기 요청
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({
+            session_id: sessionId
+        }));
+        
+        console.log('파인튜닝 룰 설명 세션 종료:', sessionId);
+        sessionId = "";
+        
+        // 화면에서 세션 ID 삭제
+        const sessionStatusElement = document.getElementById('sessionStatus');
+        if (sessionStatusElement) {
+            sessionStatusElement.textContent = '없음';
+        }
+    }
+}
+
+// 게임 검색 기능
+document.getElementById('gameSearch').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+    const searchResults = document.getElementById('searchResults');
+    
+    if (searchTerm === '') {
+        searchResults.style.display = 'none';
+        return;
+    }
+    
+    // 검색 결과 필터링
+    const filteredGames = allGames.filter(game => 
+        game.toLowerCase().includes(searchTerm)
+    );
+    
+    if (filteredGames.length > 0) {
+        let resultsHTML = '';
+        filteredGames.slice(0, 10).forEach(game => { // 최대 10개까지만 표시
+            resultsHTML += `<div class="search-result-item" onclick="selectGameFromSearch('${game.replace(/'/g, "\\'")}')">⚙️ ${game}</div>`;
+        });
+        searchResults.innerHTML = resultsHTML;
+        searchResults.style.display = 'block';
+    } else {
+        searchResults.innerHTML = '<div class="no-results">검색 결과가 없습니다. 다른 키워드로 검색해보세요.</div>';
+        searchResults.style.display = 'block';
+    }
+});
+
+// 검색 결과에서 게임 선택
+function selectGameFromSearch(gameName) {
+    selectedGame = gameName;
+    document.getElementById('gameSearch').value = gameName;
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('gameSelect').value = gameName;
+    
+    // 게임 선택 이벤트 트리거
+    loadGameAndSetupChat(gameName);
+}
+
+// 게임 로드 및 채팅 설정 (공통 함수)
+function loadGameAndSetupChat(gameName) {
+    selectedGame = gameName;
+    loadGameRuleSummary(gameName);
+    document.getElementById('selectedGameName').textContent = `선택된 게임: ${gameName}`;
+    document.getElementById('chatContainer').style.display = 'block';
+    
+    // 채팅 메시지 초기화
+    const chatMessages = document.getElementById('chatMessages');
+    chatMessages.innerHTML = `
+        <div class="message bot">
+            <div class="message-bubble">
+                ${gameName} 게임의 전문 룰 설명을 확인하셨나요? ⚙️<br>
+                복잡한 상황이나 예외 규칙에 대해 정확한 답변을 드릴 수 있습니다!
+            </div>
+        </div>
+    `;
+}
+
+// 검색창 외부 클릭 시 검색 결과 숨기기
+document.addEventListener('click', function(e) {
+    const searchContainer = document.querySelector('.game-search-container');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (!searchContainer.contains(e.target)) {
+        searchResults.style.display = 'none';
+    }
+});
+
+// 기존 드롭다운 게임 선택 시 룰 요약 로드
+document.getElementById('gameSelect').addEventListener('change', function() {
+    if (this.value) {
+        // 검색창도 업데이트
+        document.getElementById('gameSearch').value = this.value;
+        loadGameAndSetupChat(this.value);
+    } else {
+        selectedGame = '';
+        document.getElementById('gameSearch').value = '';
+        document.getElementById('ruleSummary').style.display = 'none';
+        document.getElementById('chatContainer').style.display = 'none';
+    }
+});
+
+function loadGameRuleSummary(gameName) {
+    const summaryDiv = document.getElementById('ruleSummary');
+    const contentDiv = document.getElementById('summaryContent');
+    
+    // 로딩 표시
+    contentDiv.innerHTML = '<div class="loading">전문 AI가 룰을 분석하는 중...</div>';
+    summaryDiv.style.display = 'block';
+    
+    fetch('{% url "chatbot:rule_summary_api" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            game_name: gameName,
+            chat_type: 'finetuning_rules',
+            session_id: sessionId  // 세션 ID 추가
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('파인튜닝 룰 요약 응답:', data);  // 디버깅용
+        
+        if (data.status === 'success') {
+            contentDiv.innerHTML = data.summary.replace(/\n/g, '<br>');
+            
+            // 세션 ID 업데이트
+            if (data.session_id && data.session_id.trim() !== '') {
+                if (sessionId !== data.session_id) {
+                    console.log('🔄 파인튜닝 룰 요약 세션 ID 업데이트:', data.session_id);
+                    sessionId = data.session_id;
+                    const sessionStatusElement = document.getElementById('sessionStatus');
+                    if (sessionStatusElement) {
+                        sessionStatusElement.textContent = sessionId.substring(0, 8) + '...';
+                    }
+                }
+            }
+        } else {
+            contentDiv.innerHTML = '룰 요약을 불러오는데 실패했습니다.';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        contentDiv.innerHTML = '룰 요약을 불러오는데 오류가 발생했습니다.';
+    });
+}
+
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (!message || !selectedGame) {
+        if (!selectedGame) {
+            alert('먼저 게임을 선택해주세요.');
+        }
+        return;
+    }
+    
+    // 세션이 아직 초기화되지 않았으면 잠시 대기
+    if (!sessionId) {
+        addMessage('세션을 초기화하는 중입니다. 잠시 후 다시 시도해주세요.', 'bot');
+        return;
+    }
+    
+    // 사용자 메시지 표시
+    addMessage(message, 'user');
+    input.value = '';
+    
+    // 봇 응답 요청
+    fetch('{% url "chatbot:chat_api" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            message: message,
+            chat_type: 'finetuning_rules',
+            session_id: sessionId,  // 미리 받은 세션 ID 사용
+            game_name: selectedGame
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('파인튜닝 룰 설명 서버 응답 데이터:', data);  // 디버깅용
+        
+        if (data.status === 'success') {
+            addMessage(data.response, 'bot');
+            
+            // 세션 ID 업데이트 (혹시 모를 변경사항 반영)
+            if (data.session_id && data.session_id.trim() !== '') {
+                if (sessionId !== data.session_id) {
+                    console.log('🔄 파인튜닝 룰 설명 세션 ID 업데이트:', data.session_id);
+                    sessionId = data.session_id;
+                    const sessionStatusElement = document.getElementById('sessionStatus');
+                    if (sessionStatusElement) {
+                        sessionStatusElement.textContent = sessionId.substring(0, 8) + '...';
+                    }
+                }
+            }
+        } else {
+            addMessage('죄송합니다. 오류가 발생했습니다.', 'bot');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        addMessage('죄송합니다. 네트워크 오류가 발생했습니다.', 'bot');
+    });
+}
+
+function addMessage(message, sender) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    
+    const bubbleDiv = document.createElement('div');
+    bubbleDiv.className = 'message-bubble';
+    bubbleDiv.innerHTML = message.replace(/\n/g, '<br>');
+    
+    messageDiv.appendChild(bubbleDiv);
+    chatMessages.appendChild(messageDiv);
+    
+    // 스크롤을 맨 아래로
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 엔터 키로 메시지 전송
+document.getElementById('messageInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+// 페이지 로드 시 URL 파라미터 확인
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameParam = urlParams.get('game');
+    
+    if (gameParam && allGames.includes(gameParam)) {
+        // URL 파라미터로 게임이 지정된 경우 자동 선택
+        document.getElementById('gameSearch').value = gameParam;
+        document.getElementById('gameSelect').value = gameParam;
+        loadGameAndSetupChat(gameParam);
+    }
+});
+</script>
+{% endblock %}
